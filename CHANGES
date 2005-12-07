@@ -1,0 +1,22 @@
+Revision history for Perl extension Graph::Flowchart.
+
+0.04 2005-12-07 Tels 19 tests
+  * taken code over from Devel::Graph
+  * require Graph::Easy v0.34
+  * fix to work with Graph::Easy 0.34
+  * make pod tests also cover ::Node
+  * fix graph detailing usage of merge()
+
+0.03 2005-11-13 Tels 17 tests
+  * require Graph::Easy v0.33
+  * require PPI v1.04
+  * require Perl v5.8.0
+  * update POD with examples and note that decomposing is not implemented yet
+  * add: add_while()
+
+0.02 2005-11-06 Tels 18 tests
+  * require Graph::Easy 0.32
+
+0.01 2005-11-06 Tels 18 tests
+  * first version
+

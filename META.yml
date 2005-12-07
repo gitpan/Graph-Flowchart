@@ -1,0 +1,10 @@
+--- #YAML:1.0
+name: Graph-Flowchart
+version: 0.04
+version_from: lib/Graph/Flowchart.pm
+license: gpl
+distribution_type: module
+generated_by: Graph-Flowchart version 0.04
+installdirs: site
+requires:
+  Graph::Easy: 0.34

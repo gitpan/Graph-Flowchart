@@ -1,0 +1,14 @@
+CHANGES
+LICENSE
+MANIFEST
+META.yml
+README
+SIGNATURE
+Makefile.PL
+examples/test.pl
+lib/Graph/Flowchart.pm
+lib/Graph/Flowchart/Node.pm
+t/graphpm.t
+t/nodepm.t
+t/pod.t
+t/pod_cov.t
