@@ -3,16 +3,19 @@
 use Test::More;
 use strict;
 
+my $tests;
+
 BEGIN
    {
-   plan tests => 2;
+   $tests = 2;
+   plan tests => $tests;
    chdir 't' if -d 't';
    use lib '../lib';
    };
 
 SKIP:
   {
-  skip("Test::Pod::Coverage 1.00 required for testing POD coverage", 1)
+  skip("Test::Pod::Coverage 1.00 required for testing POD coverage", $tests)
     unless do {
     eval "use Test::Pod::Coverage 1.00";
     $@ ? 0 : 1;

@@ -5,7 +5,7 @@ use strict;
 
 BEGIN
    {
-   plan tests => 7;
+   plan tests => 11;
    chdir 't' if -d 't';
    use lib '../lib';
    use_ok ("Graph::Flowchart") or die($@);
@@ -38,11 +38,11 @@ can_ok ('Graph::Flowchart',
 #############################################################################
 # OO interface
 
-my $grapher = Graph::Flowchart->new();
+my $chart = Graph::Flowchart->new();
 
-my $first = $grapher->first_block();
-my $last = $grapher->first_block();
-my $curr = $grapher->current_block();
+my $first = $chart->first_block();
+my $last = $chart->first_block();
+my $curr = $chart->current_block();
 
 my $c = 'Graph::Flowchart::Node';
 
@@ -53,5 +53,15 @@ is (ref($curr), $c);
 is ($curr, $last, 'last and curr are the same');
 is ($curr, $first, 'first and curr are the same');
 
+my $block = $chart->add_block('test');
 
+is ($chart->current_block(), $block, 'added block is current');
+is ($chart->last_block(), $curr, 'add_block does not change last block');
+
+#############################################################################
+# setting current block
+
+$chart->current_block($first);
+is ($chart->current_block(), $first, 'set current to first');
+is ($chart->last_block(), $curr, 'add_block does not change last block');
 

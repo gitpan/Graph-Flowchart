@@ -34,7 +34,7 @@ WriteMakefile(
   NAME			=> 'Graph::Flowchart',
   VERSION_FROM		=> 'lib/Graph/Flowchart.pm', # finds $VERSION
   PREREQ_PM		=> {
-	'Graph::Easy' => 0.34,
+	'Graph::Easy' => 0.36,
 	},
   ABSTRACT_FROM		=> 'lib/Graph/Flowchart.pm',
   AUTHOR		=> 'Tels <nospam-abuse@bloodgate.com>',

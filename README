@@ -1,7 +1,11 @@
-Devel-Graph
-===========
+Graph::Flowchart
+================
 
-This module will turn Perl code like the following:
+This module helps you to assemble flowcharts for code.
+It will generate Graph::Easy objects, which can then be output in various
+formats like HTML, ASCII, Unicode boxart drawings, graphviz or SVG.
+
+As an example look for Devel::Graph, which uses this package to turn this:
 
 	my $a = shift;
 	my $b = 1;
@@ -13,6 +17,41 @@ This module will turn Perl code like the following:
 
 into a Graph::Easy object, which lets you then generate output like
 the following:
+
+	##################
+	#     start      #
+	##################
+	  |
+	  |
+	  v
+	+----------------+
+	| my $a = shift; |
+	| my $b = 1;     |
+	+----------------+
+	  |
+	  |
+	  v
+	+----------------+
+	|  if ($a < 9)   |--+
+	+----------------+  |
+	  |                 |
+	  | true            |
+	  v                 |
+	+----------------+  |
+	|  $b = $a + 1;  |  |
+	+----------------+  |
+	  |                 |
+	  |                 | false
+	  v                 |
+	+----------------+  |
+	| return $b + 2; | <+
+	+----------------+
+	  |
+	  |
+	  v
+	##################
+	#      end       #
+	##################
 
 
 INSTALLATION

@@ -6,7 +6,7 @@
 
 package Graph::Flowchart;
 
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 use strict;
 use warnings;
@@ -41,7 +41,17 @@ sub _init
 
   # make the chart flow down
   my $g = $self->{graph};
+
   $g->set_attribute('flow', 'down');
+
+  # set class defaults
+  $g->set_attribute('node.point', 'shape', 'point');
+  $g->set_attribute('node.start', 'border-style', 'bold');
+  $g->set_attribute('node.end', 'border-style', 'bold');
+  for my $s (qw/block if for/)
+    {
+    $g->set_attribute("node.$s", 'border-style', 'solid');
+    }
 
   # add the start node
   $self->{_last} = $self->new_block ('start', N_START() );
@@ -88,24 +98,30 @@ sub as_boxart
 
 sub last_block
   {
-  # return the last block
+  # get/set the last block
   my $self = shift;
+
+  $self->{_last} = $_[0] if ref($_[0]) && $_[0]->isa('Graph::Flowchart::Node');
 
   $self->{_last};
   }
 
 sub current_block
   {
-  # return the current insertion point
+  # get/set the current insertion point
   my $self = shift;
+
+  $self->{_cur} = $_[0] if ref($_[0]) && $_[0]->isa('Graph::Flowchart::Node');
 
   $self->{_cur};
   }
 
 sub first_block
   {
-  # return the first block
+  # get/set the first block
   my $self = shift;
+
+  $self->{_first} = $_[0] if ref($_[0]) && $_[0]->isa('Graph::Flowchart::Node');
 
   $self->{_first};
   }
@@ -140,16 +156,8 @@ sub merge_blocks
 
 #  print STDERR "# merge $first->{name} $second->{name}\n";
 
-  if ($first->{_type} == N_JOINT)
-    {
-    $first->del_attribute('shape');
+  $first->sub_class($second->sub_class()) if $first->{_type} == N_JOINT;
 
-    for my $att (qw/shape border-style/)
-      {
-      my $a = $second->attribute($att);
-      $first->set_attribute($att, $a) if defined $a;
-      }
-    }
   $first->set_attribute('label', $label);
   $first->{_type} = $second->{_type};
 
@@ -233,6 +241,8 @@ sub add_if_then
 sub add_if_then_else
   {
   my ($self, $if, $then, $else, $where) = @_;
+
+  return $self->add_if_then($if,$then,$where) unless defined $else;
  
   $if = $self->new_block($if, N_IF()) unless ref $if;
   $then = $self->new_block($then, N_THEN()) unless ref $then;
@@ -243,8 +253,6 @@ sub add_if_then_else
 
   $if = $self->add_block ($if, $where);
   
-#  $if->set_attribute('rows',2);
-
   $self->connect($if, $then, 'true');
   $self->connect($if, $else, 'false');
 
@@ -384,6 +392,53 @@ X<unicode>
 X<flowchart>
 X<diagram>
 
+=head2 Classes
+
+The nodes constructed by the various C<add_*> methods will set the subclass
+of the node according to the following list:
+
+=over 2
+
+=item start
+
+The start block.
+
+=item end
+
+The end block, created by C<finish()>.
+
+=item block
+
+Orindary code blocks, f.i. from C<$b = 9;>.
+
+=item if, for, while
+
+Blocks for the various constructs for conditional and loop constructs.
+
+=back
+
+Each class will get some default attributes, like C<if> constructs having
+a diamond-shape.
+
+You can override the graph appearance most easily by changing the
+(sub)-class attributes:
+
+	my $chart = Graph::Flowchart->new();
+
+	$chart->add_block('$a = 9;');
+	$chart->add_if_then('$a == 9;', '$b = 1;');
+	$chart->finish();
+
+	my $graph = $chart->as_graph();
+
+Now C<$graph> is a C<Graph::Easy> object and you can manipulate the
+class attributes like so:
+
+	$graph->set_attribute('node.if', 'fill', 'red');
+	print $graph->as_html_file();
+
+This will color all conditional blocks red.
+ 
 =head1 EXPORT
 
 Exports nothing.
@@ -402,7 +457,7 @@ blocks at the current position.
 
 	my $grapher = Graph::Flowchart->new();
 
-Creates a new C<Devel::Graph> object.
+Creates a new C<Graph::Flowchart> object.
 
 =head2 as_graph()
 
@@ -430,23 +485,38 @@ Returns the flow chart as entire HTML page.
 
 =head2 current_block()
 
-	my $insertion = $grapher->current_block();
+	my $insertion = $grapher->current_block();	# get
+	$grapher->current_block( $block);		# set
 
-Returns the current block in the flow chart, e.g. where new code blocks
+Get or set the current block in the flow chart, e.g. where new code blocks
 will be inserted by the C<add_*> methods.
+
+Needs a C<Graph::Flowchart::Node> as argument, which is usually
+an object returned by one of the C<add_*> methods.
 
 =head2 first_block()
 
-	my $first = $grapher->first_block();
+	my $first = $grapher->first_block();		# get
+	$grapher->first_block( $block );		# set
 
-Returns the first block in the flow chart, usually the 'start' block.
+Get or set the first block in the flow chart, usually the 'start' block.
+
+Needs a C<Graph::Flowchart::Node> as argument, which is usually
+an object returned by one of the C<add_*> methods.
 
 =head2 last_block()
 
-	my $last = $grapher->first_block();
+	my $last = $grapher->last_block();		# get
+	$grapher->last_block( $block);			# set
 
-Returns the last block in the flow chart, usually the block where you
+Get or set the last block in the flow chart, usually the block where you
 last added something via one of the C<add_*> routines.
+
+Needs a C<Graph::Flowchart::Node> as argument, which is usually
+an object returned by one of the C<add_*> methods.
+
+The returned block will only be the last block if you call C<finish()>
+beforehand.
 
 =head2 finish()
 
@@ -460,10 +530,10 @@ to the newly added block, and return this block.
 
 =head2 new_block()
 
-	my $block = $grapher->add_block( $code );
-	my $block = $grapher->add_block( $code, Devel::Graph::Node::N_BLOCK );
+	my $block = $grapher->new_block( $label, $type );
 
-Creates a new block/node from the given code and the optional type.
+Creates a new block from the given label and type. The type is one
+of the C<N_*> from C<Graph::Flowchart::Node>.
 
 =head2 add_block()
 
@@ -526,6 +596,8 @@ Example:
         +-------------+  true   +---------+
     --> | if ($a = 9) | ------> | $b = 1; | -->   *   -->
         +-------------+         +---------+
+
+If C<$else> is not defined, works just like C<add_if_then()>.
 
 =head2 add_for()
 
@@ -633,7 +705,7 @@ This will be turned into:
 
 Connects two blocks with an edge, setting the optional edge label.
 
-Returns the <Graph::Easy::Edge> object for the connection.
+Returns the C<Graph::Easy::Edge> object for the connection.
  
 =head1 SEE ALSO
 

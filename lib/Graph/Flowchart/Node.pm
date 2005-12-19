@@ -12,7 +12,7 @@ use warnings;
 use Graph::Easy::Node;
 use Exporter;
 
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 #############################################################################
 #############################################################################
@@ -35,6 +35,21 @@ sub N_FOR ()		{ 8; }
 sub N_BODY ()		{ 9; }
 sub N_CONTINUE ()	{ 10; }
 
+my $subclass = {
+  N_START()	=> 'start',
+  N_END()	=> 'end',
+  N_BLOCK()	=> 'block',
+  N_BODY()	=> 'block',
+  N_CONTINUE()	=> 'block',
+  N_THEN()	=> 'block',
+  N_IF()	=> 'if',
+  N_ELSE()	=> 'else',
+  N_JOINT()	=> 'joint',
+  N_FOR()	=> 'for',
+  };
+
+#############################################################################
+
 #############################################################################
 
 sub new
@@ -50,18 +65,7 @@ sub new
 
   $self->_init( { label => $label, name => $self->{id} } );
 
-  if ($type == N_JOINT)
-    {
-    $self->set_attribute('shape', 'point');
-    }
-  elsif ($type == N_IF)
-    {
-    $self->set_attribute('shape', 'diamond');
-    }
-  elsif ($type == N_END || $type == N_START)
-    {
-    $self->set_attribute('border-style', 'bold');
-    }
+  $self->sub_class($subclass->{$type} || 'block');
 
   $self;
   }
@@ -71,7 +75,7 @@ __END__
 
 =head1 NAME
 
-Devel::Graph::Node - A node in a Devel::Graph, representing a block/expression
+Graph::Flowchart::Node - A node in a Graph::Flowchart, representing a block/expression
 
 =head1 SYNOPSIS
 

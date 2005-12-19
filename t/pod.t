@@ -3,16 +3,19 @@
 use Test::More;
 use strict;
 
+my $tests;
+
 BEGIN
    {
-   plan tests => 2;
+   $tests = 2;
+   plan tests => $tests;
    chdir 't' if -d 't';
    use lib '../lib';
    };
 
 SKIP:
   {
-  skip( 'Test::Pod not installed on this system', 1 )
+  skip( 'Test::Pod not installed on this system', $tests )
     unless do
       {
       eval "use Test::Pod";

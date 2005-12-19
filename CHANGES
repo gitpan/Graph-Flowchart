@@ -1,5 +1,14 @@
 Revision history for Perl extension Graph::Flowchart.
 
+0.05 2005-12-19 Tels 23 tests
+  * require Graph::Easy v0.36
+  * set a subclass for each node
+  * set attributes on a per-class basis
+  * fix pod.t and pod_cov.t when POD::Test/Pod::Coverage are not installed
+  * fix the POD in both .pm files
+  * fix README and include example
+  * first_block(), last_block() and current_block() can now also set the block
+
 0.04 2005-12-07 Tels 19 tests
   * taken code over from Devel::Graph
   * require Graph::Easy v0.34
