@@ -5,7 +5,7 @@ use strict;
 
 BEGIN
    {
-   plan tests => 11;
+   plan tests => 14;
    chdir 't' if -d 't';
    use lib '../lib';
    use_ok ("Graph::Flowchart") or die($@);
@@ -65,3 +65,19 @@ $chart->current_block($first);
 is ($chart->current_block(), $first, 'set current to first');
 is ($chart->last_block(), $curr, 'add_block does not change last block');
 
+#############################################################################
+# add_block() and connect() set edge classes
+
+my ($if, $then, $cur) = $chart->add_if_then ('if ($a == 9)', '$b = 1;');
+
+my $g = $chart->as_graph();
+
+my @edges = $g->edges();
+
+is (scalar @edges, 5, 'two edges (start => block => if => then => joint, if => joint');
+
+my $edge = $g->edge($if,$then);
+is ($edge->class(), 'edge.true', 'if => then is edge.true');
+
+$edge = $g->edge($then, $cur);
+is ($edge->class(), 'edge', 'then => cur is edge');

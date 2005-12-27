@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-use lib 'lib';
+use lib '../lib';
 use Graph::Flowchart;
 
 my $format = shift || 'as_boxart';
@@ -30,6 +30,6 @@ print STDERR "Resulting graph has ",
 	scalar $gr->nodes(), " nodes and ", 
 	scalar $gr->edges()," edges:\n\n";
 
-binmode STDOUT, ':utf8' or die ("binmode STDERR, ':utf8' failed: $!");
+binmode STDOUT, ':utf8' or die ("binmode STDOUT, ':utf8' failed: $!");
 print $gr->$format();
 

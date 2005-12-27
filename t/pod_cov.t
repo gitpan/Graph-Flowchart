@@ -38,7 +38,14 @@ SKIP:
 	N_IF|
 	N_JOINT|
 	N_START|
-	N_THEN
+	N_THEN|
+	N_BREAK|
+	N_GOTO|
+	N_LAST|
+	N_NEXT|
+	N_RETURN|
+	N_SUB|
+	N_USE
     )\z/x ] };
   pod_coverage_ok( "Graph::Flowchart::Node", $trustme );
   }

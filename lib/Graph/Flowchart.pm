@@ -6,16 +6,15 @@
 
 package Graph::Flowchart;
 
-$VERSION = '0.05';
+$VERSION = '0.06';
 
 use strict;
-use warnings;
 
 use Graph::Easy;
 use Graph::Flowchart::Node qw/
   N_IF N_THEN N_ELSE
   N_END N_START N_BLOCK N_JOINT
-  N_FOR N_CONTINUE
+  N_FOR N_CONTINUE N_GOTO
   /;
 
 #############################################################################
@@ -27,8 +26,7 @@ sub new
 
   my $self = bless {}, $class;
 
-  my $args = $_[0];
-  $args = { @_ } if ref($args) ne 'HASH';
+  my $args = $_[0]; $args = { @_ } if ref($args) ne 'HASH';
 
   $self->_init($args);
   }
@@ -41,18 +39,19 @@ sub _init
 
   # make the chart flow down
   my $g = $self->{graph};
-
   $g->set_attribute('flow', 'down');
 
   # set class defaults
-  $g->set_attribute('node.point', 'shape', 'point');
+  $g->set_attribute('node.joint', 'shape', 'point');
   $g->set_attribute('node.start', 'border-style', 'bold');
   $g->set_attribute('node.end', 'border-style', 'bold');
   for my $s (qw/block if for/)
     {
     $g->set_attribute("node.$s", 'border-style', 'solid');
     }
-
+#  $g->set_attribute('edge.true', 'flow', 'left');
+#  $g->set_attribute('edge.false', 'flow', 'front');
+   
   # add the start node
   $self->{_last} = $self->new_block ('start', N_START() );
 
@@ -61,6 +60,8 @@ sub _init
 
   $self->{_first} = $self->{_last};
   $self->{_cur} = $self->{_last};
+  
+  $self->{_group} = undef;
 
   $self;
   }
@@ -116,6 +117,16 @@ sub current_block
   $self->{_cur};
   }
 
+sub current
+  {
+  # get/set the current insertion point
+  my $self = shift;
+
+  $self->{_cur} = $_[0] if ref($_[0]) && $_[0]->isa('Graph::Flowchart::Node');
+
+  $self->{_cur};
+  }
+
 sub first_block
   {
   # get/set the first block
@@ -126,13 +137,45 @@ sub first_block
   $self->{_first};
   }
 
+sub make_current
+  {
+  # set the current insertion point, and convert it to a joint
+  my $self = shift;
+
+  $self->{_cur} = $_[0] if ref($_[0]) && $_[0]->isa('Graph::Flowchart::Node');
+
+  $self->{_cur}->{_type} = N_JOINT();
+
+  $self->{_cur};
+  }
+
+#############################################################################
+
+sub add_group
+  {
+  # add a group, and set it as current.
+  my ($self, $name) =@_;
+
+  my $g = $self->{graph};
+
+  $self->{_group} = $g->add_group($name);
+  }
+  
+sub no_group
+  {
+  # we are now outside the group, so forget it
+  my $self = shift;
+
+  $self->{_group} = undef;
+  }
+
 #############################################################################
 
 sub new_block
   {
-  my ($self, $label, $type) = @_;
+  my ($self, $text, $type, $label) = @_;
 
-  Graph::Flowchart::Node->new( $label, $type );    
+  Graph::Flowchart::Node->new( $text, $type, $label, $self->{_group} );
   }
 
 #############################################################################
@@ -147,8 +190,6 @@ sub merge_blocks
   return $second
 	if ( ($first->{_type} != N_JOINT()) &&
 	     ($first->{_type} != $second->{_type} ) );
-   
-  my $g = $self->{graph};
 
   my $label = $first->label();
   $label .= '\n' unless $label eq '';
@@ -162,6 +203,7 @@ sub merge_blocks
   $first->{_type} = $second->{_type};
 
   # drop second node from graph
+  my $g = $self->{graph};
   $g->merge_nodes($first, $second);
 
   $self->{_cur} = $first;
@@ -171,12 +213,13 @@ sub merge_blocks
 
 sub connect
   {
-  my ($self, $from, $to, $edge_label) = @_;
+  my ($self, $from, $to, $edge_label, $edge_class) = @_;
 
   my $g = $self->{graph};
   my $edge = $g->add_edge($from, $to);
 
   $edge->set_attribute('label', $edge_label) if defined $edge_label;
+  $edge->sub_class($edge_class) if defined $edge_class;
 
   $edge;
   }
@@ -185,16 +228,38 @@ sub add_block
   {
   my ($self, $block, $where) = @_;
 
+  # XXX TODO: if $where is a N_BLOCK() and $block a scalar, then
+  # simple append $block to $where->label() and spare us the
+  # creation of a new block, and then merging it into $where.
+
   $block = $self->new_block($block, N_BLOCK() ) unless ref $block;
 
   $where = $self->{_cur} unless defined $where;
   my $g = $self->{graph};
-
   $g->add_edge($where, $block);
 
   $block = $self->merge_blocks($where, $block);
 
   $self->{_cur} = $block;			# set new _cur and return it
+  }
+	
+sub add_new_block
+  {
+  # shortcut for "add_block(new_block(...))"
+  my ($self, $text, $type, $label, $where) = @_;
+
+  my $block = $self->new_block($text, $type, $label);
+
+  $self->add_block($block,$where);
+  }
+
+sub add_new_joint
+  {
+  # shortcut for "add_block(new_block(.., N_JOINT()))"
+  my ($self, $where) = @_;
+
+  my $block = $self->new_block('', N_JOINT());
+  $self->add_block($block,$where);
   }
 
 sub add_joint
@@ -215,6 +280,49 @@ sub add_joint
   $joint;
   }
 
+#############################################################################
+# code constructs like if, for etc
+
+sub add_jump
+  {
+  my ($self, $text, $type, $label, $target, $where) = @_;
+
+  # find target if it was not specified as block
+  $target = $self->find_target($target) unless ref($target);
+
+  if (!defined $target)
+    {
+    $target = $self->new_block ('', N_JOINT(), $target);
+    $self->{graph}->add_node($target);
+    }
+
+  my $jump = $self->add_new_block($text, $type);
+
+  my $l = $target->{_label}; $l = '' unless defined $l;
+  $l = ' '.$l if $l ne '';
+
+  # connect the goto to the target block
+  my $edge = $self->connect($jump, $target, "$type$l", $type);
+  $self->{_cur} = $target;
+
+  return ($jump,$target) if wantarray;
+
+  $jump;
+  }
+
+sub find_target
+  {
+  my ($self, $label) = @_;
+
+  my $g = $self->{graph};
+
+  for my $n (values %{$g->{nodes}})
+    {
+    return $n if $n->{_label} eq $label;	# found
+    }
+  undef;					# not found
+  }
+
 sub add_if_then
   {
   my ($self, $if, $then, $where) = @_;
@@ -223,17 +331,18 @@ sub add_if_then
   $then = $self->new_block($then, N_THEN()) unless ref $then;
 
   $where = $self->{_cur} unless defined $where;
-  my $g = $self->{graph};
 
   $if = $self->add_block ($if, $where);
 
-  $self->connect($if, $then, 'true');
+  $self->connect($if, $then, 'true', 'true');
 
   # then --> '*'
   $self->{_cur} = $self->add_joint($then);
 
   # if -- false --> '*'
-  $self->connect($if, $self->{_cur}, 'false');
+  $self->connect($if, $self->{_cur}, 'false', 'false');
+
+  return ($if, $then, $self->{_cur}) if wantarray;
 
   $self->{_cur};
   }
@@ -249,16 +358,16 @@ sub add_if_then_else
   $else = $self->new_block($else, N_ELSE()) unless ref $else;
 
   $where = $self->{_cur} unless defined $where;
-  my $g = $self->{graph};
 
   $if = $self->add_block ($if, $where);
   
-  $self->connect($if, $then, 'true');
-  $self->connect($if, $else, 'false');
+  $self->connect($if, $then, 'true', 'true');
+  $self->connect($if, $else, 'false', 'false');
 
   # then --> '*', else --> '*'
   $self->{_cur} = $self->add_joint($then, $else);
 
+  return ($if, $then, $else, $self->{_cur}) if wantarray;
   $self->{_cur};
   }
 
@@ -278,7 +387,6 @@ sub add_for
   # init -> if $while --> body --> cont --> (back to if)
 
   $where = $self->{_cur} unless defined $where;
-  my $g = $self->{graph};
 
   $init = $self->add_block ($init, $where);
   $while = $self->add_block ($while, $init);
@@ -287,13 +395,13 @@ sub add_for
   # one coming back and we want two of them on one side for easier layouts:
   $while->set_attribute('rows',2);
 
-  $self->connect($while, $body, 'true');
+  $self->connect($while, $body, 'true', 'true');
 
   $self->connect($body, $cont);
   $self->connect($cont, $while);
 
   my $joint = $self->add_joint();
-  $self->connect($while, $joint, 'false');
+  $self->connect($while, $joint, 'false', 'false');
 
   $self->{_cur} = $joint;
 
@@ -319,7 +427,6 @@ sub add_while
   # if $while --> body --> cont --> (back to if)
 
   $where = $self->{_cur} unless defined $where;
-  my $g = $self->{graph};
 
   $while = $self->add_block ($while, $where);
   
@@ -327,7 +434,7 @@ sub add_while
   # one coming back and we want two of them on one side for easier layouts:
   $while->set_attribute('rows',2);
 
-  $self->connect($while, $body, 'true');
+  $self->connect($while, $body, 'true', 'true');
 
   if (defined $cont)
     {
@@ -340,7 +447,7 @@ sub add_while
     }
 
   my $joint = $self->add_joint();
-  $self->connect($while, $joint, 'false');
+  $self->connect($while, $joint, 'false', 'false');
 
   $self->{_cur} = $joint;
 
@@ -353,10 +460,7 @@ sub finish
   {
   my ($self, $where) = @_;
 
-  my $g = $self->{graph};
-
   my $end = $self->new_block ( 'end', N_END() );
-
   $end = $self->add_block ($end, $where);
  
   $self->{_last} = $end;
@@ -415,6 +519,23 @@ Orindary code blocks, f.i. from C<$b = 9;>.
 
 Blocks for the various constructs for conditional and loop constructs.
 
+=item sub
+
+For sub routine declarations.
+
+=item use
+
+For C<use>, C<no> and C<require> statements.
+
+=item goto, break, return, next
+
+Blocks for the various constructs for jumps/returns.
+
+=item true, false, goto, call, return, break, next
+
+Classes for edges of the true and false if-branches, and for goto, as well
+as sub routine calls.
+
 =back
 
 Each class will get some default attributes, like C<if> constructs having
@@ -435,9 +556,11 @@ Now C<$graph> is a C<Graph::Easy> object and you can manipulate the
 class attributes like so:
 
 	$graph->set_attribute('node.if', 'fill', 'red');
+	$graph->set_attribute('edge.true', 'color', 'green');
 	print $graph->as_html_file();
 
-This will color all conditional blocks red.
+This will color all conditional blocks red, and edges that represent
+the C<true> branch green.
  
 =head1 EXPORT
 
@@ -451,7 +574,7 @@ on the current position. After inserting the blocks, the current
 position will be updated.
 
 In addition, the newly inserted block(s) might be merged with
-blocks at the current position.
+blodcks at the current position.
 
 =head2 new()
 
@@ -494,6 +617,16 @@ will be inserted by the C<add_*> methods.
 Needs a C<Graph::Flowchart::Node> as argument, which is usually
 an object returned by one of the C<add_*> methods.
 
+=head2 current()
+
+C<current()> is an alias for C<current_block()>.
+
+=head2 make_current()
+
+	$grapher->make_current($block);
+
+Set the given block as current, and convert it to a joint.
+
 =head2 first_block()
 
 	my $first = $grapher->first_block();		# get
@@ -530,10 +663,33 @@ to the newly added block, and return this block.
 
 =head2 new_block()
 
-	my $block = $grapher->new_block( $label, $type );
+	my $block = $grapher->new_block( $text, $type );
+	my $block = $grapher->new_block( $text, $type, $label );
 
-Creates a new block from the given label and type. The type is one
+Creates a new block from the given text and type. The type is one
 of the C<N_*> from C<Graph::Flowchart::Node>.
+
+The optional label gives the label name, which can be used by goto
+constructs as target node. See also C<find_target()>.
+
+=head2 find_target()
+
+	my $target = $grapher->find_target( $label );
+
+Given the label C<$label>, find the block that has this text as label
+and returns it. Returns undef if the block doesn't exists yet.
+
+=head2 add_group()
+
+	$grapher->add_group($group_name);
+
+Add a group to the flowchart, and set it as current.
+
+=head2 no_group()
+
+	$grapher->no_group();
+
+Forget the current group.
 
 =head2 add_block()
 
@@ -553,6 +709,22 @@ Example:
         +---------+
     --> | $a = 9; | -->
         +---------+
+
+=head2 add_new_block()
+
+	my $new = $grapher->add_new_block( $text, $type, $label, $where);
+
+Creates a new block, and adds it to the flowchart. Might merge the new block
+into the current one, and then returns the new current block.
+
+=head2 add_new_joint()
+
+	my $joint = $grapher->add_new_joint();
+	my $joint = $grapher->add_new_joint($where);
+
+Is a shortcut for C<< add_block(new_block('', N_JOINT())) >> and creates and
+adds a joint to the flowchart. The optional parameter C<$where> takes the
+block where to attach the join to.
 
 =head2 add_if_then()
 
@@ -661,6 +833,24 @@ loop):
         |     $a++;     | --> |  $i++  |
         +---------------+     +--------+
 
+=head2 add_jump()
+
+	my $jump = $grapher->add_jump ( $text, $type, $label, $target);
+	my ($jump,$target) = $grapher->add_jump ( $text, $type, $label);
+
+Adds a jump block, with a connection to C<$target>. If C<$target> is just
+the label name, will try to find a block with that label. If no block
+can be found, will create it.
+
+The type is one of:
+
+	goto
+	break
+	return
+	last
+	next
+	continue
+
 =head2 add_joint()
 
 	my $joint = $grapher->add_joint( @blocks );
@@ -702,8 +892,10 @@ This will be turned into:
 
 	my $edge = $grapher->connect( $from, $to );
 	my $edge = $grapher->connect( $from, $to, $edge_label );
+	my $edge = $grapher->connect( $from, $to, $edge_label, $edge_class );
 
-Connects two blocks with an edge, setting the optional edge label.
+Connects two blocks with an edge, setting the optional edge label and edge
+class.
 
 Returns the C<Graph::Easy::Edge> object for the connection.
  
