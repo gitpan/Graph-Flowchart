@@ -16,6 +16,7 @@ BEGIN
 can_ok ('Graph::Flowchart::Node',
   qw/
     new
+    _set_type
   /);
 
 my $node = Graph::Flowchart::Node->new ( '$a = 0;' );

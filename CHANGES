@@ -1,5 +1,12 @@
 Revision history for Perl extension Graph::Flowchart.
 
+0.07 2006-01-01 Tels 36 tests
+  * require Graph::Easy v0.38
+  * set edge flow to better handle the flow after loops
+  * use constant;
+  * add: add_until(), add_foreach()
+  * add_for() returns (current, body, continue) blocks
+
 0.06 2005-12-27 Tels 36 tests
   * require Graph::Easy v0.37
   * add:

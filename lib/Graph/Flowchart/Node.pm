@@ -7,7 +7,7 @@
 package Graph::Flowchart::Node;
 
 @ISA = qw/Graph::Easy::Node Exporter/;
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 use Graph::Easy::Node;
 use Exporter;
@@ -24,23 +24,23 @@ use Exporter;
 
 use strict;
 
-sub N_START ()		{ 1; }
-sub N_END () 		{ 2; }
-sub N_BLOCK ()		{ 3; }
-sub N_IF ()		{ 4; }
-sub N_THEN ()		{ 5; }
-sub N_ELSE ()		{ 6; }
-sub N_JOINT ()		{ 7; }
-sub N_FOR ()		{ 8; }
-sub N_BODY ()		{ 9; }
-sub N_CONTINUE ()	{ 10; }
-sub N_GOTO ()		{ 11; }
-sub N_RETURN ()		{ 12; }
-sub N_BREAK ()		{ 13; }
-sub N_NEXT ()		{ 14; }
-sub N_LAST ()		{ 15; }
-sub N_SUB ()		{ 16; }
-sub N_USE ()		{ 17; }
+use constant N_START	=> 1;
+use constant N_END	=> 2;
+use constant N_BLOCK	=> 3;
+use constant N_IF	=> 4;
+use constant N_THEN	=> 5;
+use constant N_ELSE	=> 6;
+use constant N_JOINT	=> 7;
+use constant N_FOR	=> 8;
+use constant N_BODY	=> 9;
+use constant N_CONTINUE	=> 10;
+use constant N_GOTO	=> 11;
+use constant N_RETURN	=> 12;
+use constant N_BREAK	=> 13;
+use constant N_NEXT	=> 14;
+use constant N_LAST	=> 15;
+use constant N_SUB	=> 16;
+use constant N_USE	=> 17;
 
 my $subclass = {
   N_START()	=> 'start',
@@ -63,7 +63,6 @@ my $subclass = {
   };
 
 #############################################################################
-
 #############################################################################
 
 sub new
@@ -90,6 +89,15 @@ sub new
     {
     $group->add_node($self);
     }
+
+  $self;
+  }
+
+sub _set_type
+  {
+  my $self = shift;
+
+  $self->{_type} = shift;
 
   $self;
   }
@@ -157,7 +165,7 @@ X<gpl>
 
 =head1 AUTHOR
 
-Copyright (C) 2004-2005 by Tels L<http://bloodgate.com>
+Copyright (C) 2004-2006 by Tels L<http://bloodgate.com>
 
 X<tels>
 

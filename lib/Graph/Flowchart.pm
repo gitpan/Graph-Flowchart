@@ -1,12 +1,12 @@
 #############################################################################
 # Generate flowcharts as a Graph::Easy object
 #
-# (c) by Tels 2004-2005.
+# (c) by Tels 2004-2006.
 #############################################################################
 
 package Graph::Flowchart;
 
-$VERSION = '0.06';
+$VERSION = '0.07';
 
 use strict;
 
@@ -49,7 +49,7 @@ sub _init
     {
     $g->set_attribute("node.$s", 'border-style', 'solid');
     }
-#  $g->set_attribute('edge.true', 'flow', 'left');
+#  $g->set_attribute('edge.true', 'flow', 'front');
 #  $g->set_attribute('edge.false', 'flow', 'front');
    
   # add the start node
@@ -405,7 +405,46 @@ sub add_for
 
   $self->{_cur} = $joint;
 
-  ($joint, $body);
+  ($joint, $body, $cont);
+  }
+
+sub add_foreach
+  {
+  # add a for (@list) style loop
+  my ($self, $list, $body, $cont, $where) = @_;
+ 
+  $list = $self->new_block($list, N_FOR()) unless ref $list;
+  $body = $self->new_block($body, N_BLOCK()) unless ref $body;
+  $cont = $self->new_block($cont, N_CONTINUE()) if defined $cont && !ref $cont;
+
+  # list --> body --> cont --> (back to list)
+
+  $where = $self->{_cur} unless defined $where;
+
+  $list = $self->add_block ($list, $where);
+
+  # Make the for-head node a bigger because it has two edges leaving it, and
+  # one coming back and we want two of them on one side for easier layouts:
+  $list->set_attribute('rows',2);
+
+  $self->connect($list, $body, 'true', 'true');
+
+  if (defined $cont)
+    {
+    $self->connect($body, $cont);
+    $self->connect($cont, $list);
+    }
+  else
+    {
+    $self->connect($body, $list);
+    }
+
+  my $joint = $self->add_joint();
+  $self->connect($list, $joint, 'false', 'false');
+
+  $self->{_cur} = $joint;
+
+  ($joint, $body, $cont);
   }
 
 #############################################################################
@@ -448,6 +487,49 @@ sub add_while
 
   my $joint = $self->add_joint();
   $self->connect($while, $joint, 'false', 'false');
+
+  $self->{_cur} = $joint;
+
+  ($joint, $body, $cont);
+  }
+
+sub add_until
+  {
+  # add a "until ($i < 12) { body } continue { cont }" style loop
+  my ($self, $while, $body, $cont, $where) = @_;
+ 
+  $while = $self->new_block($while, N_IF()) unless ref $while;
+
+  # no body?
+  $body = $self->new_block( '', N_JOINT()) if !defined $body;
+  $body = $self->new_block($body, N_BLOCK()) unless ref $body;
+
+  $cont = $self->new_block($cont, N_CONTINUE()) if defined $cont && !ref $cont;
+
+  # if $while --> body --> cont --> (back to if)
+
+  $where = $self->{_cur} unless defined $where;
+
+  $while = $self->add_block ($while, $where);
+  
+  # Make the head node a bigger because it has two edges leaving it, and
+  # one coming back and we want two of them on one side for easier layouts:
+  $while->set_attribute('rows',2);
+
+  $self->connect($while, $body, 'false', 'false');
+
+  if (defined $cont)
+    {
+    $cont = $self->add_block ($cont, $body);
+    $self->connect($cont, $while);
+    }
+  else 
+    { 
+    $self->connect($body, $while);
+    }
+
+  my $joint = $self->add_joint();
+  $self->connect($while, $joint, 'true', 'true');
 
   $self->{_cur} = $joint;
 
@@ -773,16 +855,17 @@ If C<$else> is not defined, works just like C<add_if_then()>.
 
 =head2 add_for()
 
-	my ($current,$body) = $grapher->add_for( $init, $while, $cont, $body);
-	my ($current,$body) = $grapher->add_for( $init, $while, $cont, $body, $where);
+	my ($current,$body,$continue) = $grapher->add_for( $init, $while, $cont, $body, $continue);
+	my ($current,$body,$continue) = $grapher->add_for( $init, $while, $cont, $body, $continue, $where);
 
-Add a C<< for (my $i = 0; $i < 12; $i++) { ... } >> style loop.
+Add a C<< for (my $i = 0; $i < 12; $i++) { ... } continue {} >> style loop.
 
 The optional C<$where> parameter defines at which block to attach the
 construct.
 
-This routine returns two block positions, the current block (e.g. after
-the loop) and the block of the loop body.
+This routine returns three block positions, the current block (e.g. after
+the loop), the block of the loop body and the position of the (optional)
+continue block.
 
 Example:
 
@@ -796,7 +879,33 @@ Example:
         |     $a++;     | --> |  $i++  |
         +---------------+     +--------+
 
-=head2 add_while
+=head2 add_foreach()
+
+	my ($current,$body,$continue) = $grapher->add_foreach( $list, $body, $cont);
+	my ($current,$body,$continue) = $grapher->add_foreach( $list, $body, $cont, $where);
+
+Add a C<for my $var (@lies) { ... }> style loop.
+
+The optional C<$where> parameter defines at which block to attach the
+construct.
+
+This routine returns three block positions, the current block (e.g. after
+the loop), the block of the loop body and the position of the (optional)
+continue block.
+
+Example:
+
+        +----------------------+  false        
+    --> |   for my $i (@list)  | ------->  *  -->
+        +----------------------+
+          |                ^
+          | true           +----+
+          v                     |
+        +---------------+     +--------+
+        |     $a++;     | --> |  $i++  |	# body and continue block
+        +---------------+     +--------+
+
+=head2 add_while()
 
   	my ($current,$body, $cont) = 
 	  $grapher->add_while($while, $body, $cont, $where) = @_;
@@ -820,7 +929,7 @@ Example of a while loop with only the body (or only the C<continue> block):
         |      $b++;      |--+
         +-----------------+
 
-Example of a while loop with body and continue block (not similiarity to for
+Example of a while loop with body and continue block (note similiarity to for
 loop):
 
         +--------------------+  false        
@@ -832,6 +941,18 @@ loop):
         +---------------+     +--------+
         |     $a++;     | --> |  $i++  |
         +---------------+     +--------+
+
+=head2 add_until()
+
+  	my ($current,$body, $cont) = 
+	  $grapher->add_until($until, $body, $cont, $where) = @_;
+
+To skip the continue block, pass C<$cont> as undef.
+
+Works just like while, but reverses the C<true> and C<false> edges
+to represent a C<until () BLOCK continue BLOCK> loop.
+
+See also C<add_while()>.
 
 =head2 add_jump()
 
@@ -901,7 +1022,7 @@ Returns the C<Graph::Easy::Edge> object for the connection.
  
 =head1 SEE ALSO
 
-L<Graph::Easy>.
+L<Graph::Easy>, L<Devel::Graph>.
 
 =head1 COPYRIGHT AND LICENSE
 
@@ -913,7 +1034,7 @@ X<gpl>
 
 =head1 AUTHOR
 
-Copyright (C) 2004-2005 by Tels L<http://bloodgate.com>
+Copyright (C) 2004-2006 by Tels L<http://bloodgate.com>
 
 X<tels>
 X<bloodgate.com>

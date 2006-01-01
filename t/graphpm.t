@@ -32,7 +32,10 @@ can_ok ('Graph::Flowchart',
     add_if_then
     add_if_then_else
     add_for
+    add_foreach
     add_while
+    add_until
+    add_jump
   /);
 
 #############################################################################
