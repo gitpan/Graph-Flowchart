@@ -38,11 +38,11 @@ is ($node->label(), '$a = 9;', 'text');
 $node = Graph::Flowchart::Node->new ( '"hello\nworld\n!"', 1);
 is ($node->{_type}, 1, 'type got set');
 is ($node->{_label}, undef, 'no label');
-is ($node->label(), '"hello\\\\nworld\\\\n!"', 'multiple \n in label to \\n');
+is ($node->label(), '"hello\\nworld\\n!"', 'multiple \n in label to \\n');
 
 $node = Graph::Flowchart::Node->new ( '"hello\n\nworld!"', 1);
 is ($node->{_type}, 1, 'type got set');
 is ($node->{_label}, undef, 'no label');
-is ($node->label(), '"hello\\\\n\\\\nworld!"', 'multiple \n in label to \\n');
+is ($node->label(), '"hello\\n\\nworld!"', 'multiple \n in label to \\n');
 
 

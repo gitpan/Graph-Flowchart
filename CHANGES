@@ -1,4 +1,18 @@
-Revision history for Perl extension Graph::Flowchart.
+Revision history for Perl extension Graph::Flowchart:
+
+0.08 2006-01-08 Tels 36 tests
+  * require Graph::Easy v0.39 (to correctly be able to merge blocks)
+  * fix an undef warning in line 321 
+  * fix the conversion of "\n" to "\\n" to actually work
+  * add N_WHILE, N_UNTIL types
+  * add: insert_block(), insert_new_block(), insert_new_joint()
+  * document that these are not working when used recursive:
+    + add_while
+    + add_until
+    + add_foreach
+    + add_for
+    + add_if_then
+    + add_if_then_else
 
 0.07 2006-01-01 Tels 36 tests
   * require Graph::Easy v0.38

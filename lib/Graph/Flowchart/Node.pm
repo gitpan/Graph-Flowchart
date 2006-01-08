@@ -7,7 +7,7 @@
 package Graph::Flowchart::Node;
 
 @ISA = qw/Graph::Easy::Node Exporter/;
-$VERSION = '0.05';
+$VERSION = '0.06';
 
 use Graph::Easy::Node;
 use Exporter;
@@ -16,7 +16,7 @@ use Exporter;
   N_START N_END N_BLOCK N_IF N_THEN N_ELSE N_JOINT N_END N_FOR N_BODY
   N_USE
   N_SUB
-  N_CONTINUE N_GOTO N_BREAK N_RETURN N_NEXT N_LAST
+  N_CONTINUE N_GOTO N_BREAK N_RETURN N_NEXT N_LAST N_WHILE N_UNTIL
   /;
 
 #############################################################################
@@ -24,23 +24,27 @@ use Exporter;
 
 use strict;
 
-use constant N_START	=> 1;
-use constant N_END	=> 2;
-use constant N_BLOCK	=> 3;
-use constant N_IF	=> 4;
-use constant N_THEN	=> 5;
-use constant N_ELSE	=> 6;
-use constant N_JOINT	=> 7;
-use constant N_FOR	=> 8;
-use constant N_BODY	=> 9;
-use constant N_CONTINUE	=> 10;
-use constant N_GOTO	=> 11;
-use constant N_RETURN	=> 12;
-use constant N_BREAK	=> 13;
-use constant N_NEXT	=> 14;
-use constant N_LAST	=> 15;
-use constant N_SUB	=> 16;
-use constant N_USE	=> 17;
+use constant {
+  N_START	=> 1,
+  N_END		=> 2,
+  N_BLOCK	=> 3,
+  N_IF		=> 4,
+  N_THEN	=> 5,
+  N_ELSE	=> 6,
+  N_JOINT	=> 7,
+  N_FOR		=> 8,
+  N_BODY	=> 9,
+  N_CONTINUE	=> 10,
+  N_GOTO	=> 11,
+  N_RETURN	=> 12,
+  N_BREAK	=> 13,
+  N_NEXT	=> 14,
+  N_LAST	=> 15,
+  N_SUB		=> 16,
+  N_USE		=> 17,
+  N_WHILE	=> 18,
+  N_UNTIL	=> 19,
+  };
 
 my $subclass = {
   N_START()	=> 'start',
@@ -60,6 +64,8 @@ my $subclass = {
   N_LAST()	=> 'last',
   N_SUB()	=> 'sub',
   N_USE()	=> 'use',
+  N_WHILE()	=> 'while',
+  N_UNTIL()	=> 'until',
   };
 
 #############################################################################
@@ -78,12 +84,11 @@ sub new
   $self->{id} = Graph::Easy::Base::_new_id();
 
   # convert newlines into '\n'
-  $label =~ s/([^\\])\\n/$1\\\\n/g;
-  $label =~ s/([^\\])\\n/$1\\\\n/g;	# do it twice for consecutive "\n"
+  $label =~ s/\n/\\n/g;
 
   $self->_init( { label => $label, name => $self->{id} } );
 
-  $self->sub_class($subclass->{$type} || 'block');
+  $self->sub_class($subclass->{$type} || 'unknown');
 
   if (ref $group)
     {

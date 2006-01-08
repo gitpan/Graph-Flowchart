@@ -6,7 +6,7 @@
 
 package Graph::Flowchart;
 
-$VERSION = '0.07';
+$VERSION = '0.08';
 
 use strict;
 
@@ -195,11 +195,15 @@ sub merge_blocks
   $label .= '\n' unless $label eq '';
   $label .= $second->label();
 
-#  print STDERR "# merge $first->{name} $second->{name}\n";
+# print STDERR "# merge $first->{name} ", $first->label(), " $second->{name} ", $second->label(),"\n";
 
   $first->sub_class($second->sub_class()) if $first->{_type} == N_JOINT;
 
+  $label =~ s/([^\\])\|/$1\\\|/g;	# '|' to '\|' ("|" marks an attribute split)
+  $label =~ s/([^\\])\|/$1\\\|/g;	# do it twice for "||"
+
   $first->set_attribute('label', $label);
+
   $first->{_type} = $second->{_type};
 
   # drop second node from graph
@@ -224,8 +228,10 @@ sub connect
   $edge;
   }
 
-sub add_block
+sub insert_block
   {
+  # Insert a block to the current (or $where) block. Any outgoing connections
+  # from $where are moved to the new block (unless they are merged).
   my ($self, $block, $where) = @_;
 
   # XXX TODO: if $where is a N_BLOCK() and $block a scalar, then
@@ -238,6 +244,40 @@ sub add_block
   my $g = $self->{graph};
   $g->add_edge($where, $block);
 
+  my $old = $block;
+  $block = $self->merge_blocks($where, $block);
+
+  if ($block != $old)
+    {
+    # where not merged, so move outgoing connections from $where to $block
+
+    for my $e (values %{$where->{edges}})
+      {
+      # move the edge, unless is an incoming edge or a selfloop
+      $e->start_at($block) if $e->{from} == $where && $e->{to} != $where;
+      }
+    }
+ 
+  $self->{_cur} = $block;			# set new _cur and return it
+  }
+
+sub add_block
+  {
+  # Add a block to the current (or $where) block. Any outgoing connections
+  # are left where they are, e.g. starting at $where.
+
+  my ($self, $block, $where, $edge_label) = @_;
+
+  # XXX TODO: if $where is a N_BLOCK() and $block a scalar, then
+  # simple append $block to $where->label() and spare us the
+  # creation of a new block, and then merging it into $where.
+
+  $block = $self->new_block($block, N_BLOCK() ) unless ref $block;
+
+  $where = $self->{_cur} unless defined $where;
+  my $g = $self->{graph};
+  $g->add_edge($where, $block, $edge_label);
+
   $block = $self->merge_blocks($where, $block);
 
   $self->{_cur} = $block;			# set new _cur and return it
@@ -246,11 +286,21 @@ sub add_block
 sub add_new_block
   {
   # shortcut for "add_block(new_block(...))"
-  my ($self, $text, $type, $label, $where) = @_;
+  my ($self, $text, $type, $label, $where, $edge_label) = @_;
 
   my $block = $self->new_block($text, $type, $label);
 
   $self->add_block($block,$where);
+  }
+
+sub insert_new_block
+  {
+  # shortcut for "insert_block(new_block(...))"
+  my ($self, $text, $type, $label, $where) = @_;
+
+  my $block = $self->new_block($text, $type, $label);
+
+  $self->insert_block($block,$where);
   }
 
 sub add_new_joint
@@ -260,6 +310,15 @@ sub add_new_joint
 
   my $block = $self->new_block('', N_JOINT());
   $self->add_block($block,$where);
+  }
+
+sub insert_new_joint
+  {
+  # shortcut for "insert_block(new_block(.., N_JOINT()))"
+  my ($self, $where) = @_;
+
+  my $block = $self->new_block('', N_JOINT());
+  $self->insert_block($block,$where);
   }
 
 sub add_joint
@@ -280,8 +339,82 @@ sub add_joint
   $joint;
   }
 
+sub find_target
+  {
+  my ($self, $label) = @_;
+
+  my $g = $self->{graph};
+
+  for my $n (values %{$g->{nodes}})
+    {
+    return $n if defined $n->{_label} && $n->{_label} eq $label;	# found
+    }
+  undef;					# not found
+  }
+
+sub collapse_joints
+  {
+  # find any left-over joints and remove them
+  my ($self) = @_;
+
+  my $g = $self->{graph};
+
+  my @joints;
+  for my $n (values %{$g->{nodes}})
+    {
+    push @joints, $n if $n->{_type} == N_JOINT();
+    }
+
+  for my $j (@joints)
+    {
+    # a joint should have only one successor
+    my @out = $j->outgoing();
+    next if @out != 1;
+
+    my $o = $out[0]->{to};
+
+    # get the label from the outgoing edge, if any
+    my $label = $out[0]->label();
+
+    # "next" to ", next"
+    $label = ', ' . $label if $label ne '';
+
+    # get all incoming edges
+    my @in = $j->incoming();
+
+    # now for each incoming edge, add one bypass
+    for my $e (@in)
+      {
+      my $from = $e->{from}; 
+      my $l = $e->label() . $label;
+
+      $g->add_edge($e->{from}, $o, $l);
+      }
+    
+    # finally get rid of the joint (including all edges)
+    $g->del_node($j);
+    }
+
+  $self;
+  }
+
 #############################################################################
-# code constructs like if, for etc
+
+sub finish
+  {
+  my ($self, $where) = @_;
+
+  my $end = $self->new_block ( 'end', N_END() );
+  $end = $self->add_block ($end, $where);
+
+  $self->collapse_joints();
+
+  $self->{_last} = $end;
+  }
+
+#############################################################################
+#############################################################################
+# convience methods, for constructs like if, for etc
 
 sub add_jump
   {
@@ -296,31 +429,18 @@ sub add_jump
     $self->{graph}->add_node($target);
     }
 
-  my $jump = $self->add_new_block($text, $type);
+  my $jump = $self->insert_new_block($text, $type);
 
   my $l = $target->{_label}; $l = '' unless defined $l;
   $l = ' '.$l if $l ne '';
 
-  # connect the goto to the target block
+  # connect to the target block
   my $edge = $self->connect($jump, $target, "$type$l", $type);
   $self->{_cur} = $target;
 
   return ($jump,$target) if wantarray;
 
   $jump;
-  }
-
-sub find_target
-  {
-  my ($self, $label) = @_;
-
-  my $g = $self->{graph};
-
-  for my $n (values %{$g->{nodes}})
-    {
-    return $n if $n->{_label} eq $label;	# found
-    }
-  undef;					# not found
   }
 
 sub add_if_then
@@ -332,7 +452,7 @@ sub add_if_then
 
   $where = $self->{_cur} unless defined $where;
 
-  $if = $self->add_block ($if, $where);
+  $if = $self->insert_block ($if, $where);
 
   $self->connect($if, $then, 'true', 'true');
 
@@ -359,7 +479,7 @@ sub add_if_then_else
 
   $where = $self->{_cur} unless defined $where;
 
-  $if = $self->add_block ($if, $where);
+  $if = $self->insert_block ($if, $where);
   
   $self->connect($if, $then, 'true', 'true');
   $self->connect($if, $else, 'false', 'false');
@@ -536,18 +656,6 @@ sub add_until
   ($joint, $body, $cont);
   }
 
-#############################################################################
-
-sub finish
-  {
-  my ($self, $where) = @_;
-
-  my $end = $self->new_block ( 'end', N_END() );
-  $end = $self->add_block ($end, $where);
- 
-  $self->{_last} = $end;
-  }
-
 1;
 __END__
 
@@ -597,7 +705,7 @@ The end block, created by C<finish()>.
 
 Orindary code blocks, f.i. from C<$b = 9;>.
 
-=item if, for, while
+=item if, for, while, until
 
 Blocks for the various constructs for conditional and loop constructs.
 
@@ -609,11 +717,11 @@ For sub routine declarations.
 
 For C<use>, C<no> and C<require> statements.
 
-=item goto, break, return, next
+=item goto, break, return, next, last, continue
 
 Blocks for the various constructs for jumps/returns.
 
-=item true, false, goto, call, return, break, next
+=item true, false, goto, call, return, break, next, continue
 
 Classes for edges of the true and false if-branches, and for goto, as well
 as sub routine calls.
@@ -808,6 +916,94 @@ Is a shortcut for C<< add_block(new_block('', N_JOINT())) >> and creates and
 adds a joint to the flowchart. The optional parameter C<$where> takes the
 block where to attach the join to.
 
+=head2 insert_block
+
+	my $new = $grapher->insert_block($block, $where);
+
+Insert a block to the current (or C<$where>) block. Any outgoing connections
+from C<$where> are moved to the new block (unless the blocks are merged).
+
+=head2 insert_new_block
+
+	my $new = $grapher->insert_new_block($where);
+
+A short cut for:
+
+	my $block = $grapher->new_block( ... );
+	my $new = $grapher->insert_block($block, $where);
+
+See C<insert_block()>.
+
+=head2 insert_new_joint
+
+	my $new = $grapher->insert_new_joint($where);
+
+A short cut for:
+
+	my $joint = $grapher->add_joint( ... );
+	my $new = $grapher->insert_block($joint, $where);
+
+See C<insert_block()>.
+
+=head2 connect()
+
+	my $edge = $grapher->connect( $from, $to );
+	my $edge = $grapher->connect( $from, $to, $edge_label );
+	my $edge = $grapher->connect( $from, $to, $edge_label, $edge_class );
+
+Connects two blocks with an edge, setting the optional edge label and edge
+class.
+
+Returns the C<Graph::Easy::Edge> object for the connection.
+
+=head2 merge_blocks()
+
+	$grapher->merge_blocks($first,$second);
+
+If possible, merge the given two blocks into one block, keeping all connections
+to the first, and all from the second. Any connections between the two
+blocks is dropped.
+
+Example:
+
+        +---------+     +---------+
+    --> | $a = 9; | --> | $b = 2; | -->
+        +---------+     +---------+
+
+This will be turned into:
+
+        +---------+ 
+    --> | $a = 9; | -->
+        | $b = 2; | 
+        +---------+
+
+=head2 collapse_joints()
+
+	$grapher->cleanup_joints();
+
+Is called automatically by finish(). This will collapse any left-over joint nodes:
+
+                +---+             +-------+
+    -- false --> | * | -- next --> | $b++; | -->
+                +---+             +-------+
+
+Will be turned into:
+
+                       +-------+
+    -- false, next --> | $b++; | -->
+                       +-------+
+
+=head1 ADDITIONAL METHODS
+ 
+Note that the following routines will not work when used recursively, because
+they add the entire structure already connect, at once.
+
+If you want a if-then-else, which
+contains another if-then-else, for instance, you need to construct
+the blocks first, and then connect them manually.
+
+Pleasee C<Devel::Graph> on how to do this.
+
 =head2 add_if_then()
 
 	my $current = $grapher->add_if_then( $if, $then);
@@ -988,38 +1184,6 @@ Example:
 
     -->   *   -->
 
-=head2 merge_blocks()
-
-	$grapher->merge_blocks($first,$second);
-
-If possible, merge the given two blocks into one block, keeping all connections
-to the first, and all from the second. Any connections between the two
-blocks is dropped.
-
-Example:
-
-        +---------+     +---------+
-    --> | $a = 9; | --> | $b = 2; | -->
-        +---------+     +---------+
-
-This will be turned into:
-
-        +---------+ 
-    --> | $a = 9; | -->
-        | $b = 2; | 
-        +---------+
-
-=head2 connect()
-
-	my $edge = $grapher->connect( $from, $to );
-	my $edge = $grapher->connect( $from, $to, $edge_label );
-	my $edge = $grapher->connect( $from, $to, $edge_label, $edge_class );
-
-Connects two blocks with an edge, setting the optional edge label and edge
-class.
-
-Returns the C<Graph::Easy::Edge> object for the connection.
- 
 =head1 SEE ALSO
 
 L<Graph::Easy>, L<Devel::Graph>.
