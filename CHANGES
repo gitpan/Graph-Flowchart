@@ -1,5 +1,9 @@
 Revision history for Perl extension Graph::Flowchart:
 
+0.09 2006-01-29 Tels 36 tests
+  * fix Makefile.PL to work with newer YAML
+  * require Graph::Easy v0.40
+
 0.08 2006-01-08 Tels 36 tests
   * require Graph::Easy v0.39 (to correctly be able to merge blocks)
   * fix an undef warning in line 321 

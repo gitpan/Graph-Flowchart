@@ -11,7 +11,8 @@ sub MY::metafile {
     return $self->SUPER::metafile_target(@_);
   };
 
-  my $node = new YAML::Node {};
+  require YAML::Node;
+  my $node = YAML::Node->new({});
 
   $node->{name}                 = $self->{DISTNAME};
   $node->{version}              = $self->{VERSION};
@@ -34,7 +35,7 @@ WriteMakefile(
   NAME			=> 'Graph::Flowchart',
   VERSION_FROM		=> 'lib/Graph/Flowchart.pm', # finds $VERSION
   PREREQ_PM		=> {
-	'Graph::Easy' => 0.39,
+	'Graph::Easy' => 0.40,
 	},
   ABSTRACT_FROM		=> 'lib/Graph/Flowchart.pm',
   AUTHOR		=> 'Tels <nospam-abuse@bloodgate.com>',
