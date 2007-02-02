@@ -1,5 +1,11 @@
 #!/usr/bin/perl -w
 
+BEGIN
+  {
+  chdir 'examples' if -d 'examples';
+  }
+
+use strict;
 use lib '../lib';
 use Graph::Flowchart;
 

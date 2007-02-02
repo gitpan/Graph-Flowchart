@@ -1,5 +1,13 @@
 Revision history for Perl extension Graph::Flowchart:
 
+0.10 2007-02-02 Tels 36 tests
+  * require Perl v5.8.1
+  * require Graph::Easy v0.52
+  * bundle and use Module::Install v0.64
+  * add start_node(), end_node()
+  * finish(): remove start/end node if they are isolated and only connected
+    to each other, unless they are the only nodes
+
 0.09 2006-01-29 Tels 36 tests
   * fix Makefile.PL to work with newer YAML
   * require Graph::Easy v0.40

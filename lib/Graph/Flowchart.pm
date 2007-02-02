@@ -1,12 +1,11 @@
 #############################################################################
 # Generate flowcharts as a Graph::Easy object
 #
-# (c) by Tels 2004-2006.
 #############################################################################
 
 package Graph::Flowchart;
 
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 use strict;
 
@@ -199,6 +198,7 @@ sub merge_blocks
 
   $first->sub_class($second->sub_class()) if $first->{_type} == N_JOINT;
 
+  # quote chars
   $label =~ s/([^\\])\|/$1\\\|/g;	# '|' to '\|' ("|" marks an attribute split)
   $label =~ s/([^\\])\|/$1\\\|/g;	# do it twice for "||"
 
@@ -400,16 +400,51 @@ sub collapse_joints
 
 #############################################################################
 
+sub start_node
+  {
+  # return the START node
+  my $self = shift;
+
+  $self->{_first};
+  }
+
+sub end_node
+  {
+  # return the END node (or, before finish is called, the current last node)
+  my $self = shift;
+
+  $self->{_last};
+  }
+
 sub finish
   {
   my ($self, $where) = @_;
 
   my $end = $self->new_block ( 'end', N_END() );
   $end = $self->add_block ($end, $where);
+  $self->{_last} = $end;
 
   $self->collapse_joints();
 
-  $self->{_last} = $end;
+  # If there is only one connection from START, and it goes to END, delete
+  # both blocks. This makes things like "sub foo { $a++; }" look better.
+  my $start = $self->{_first};
+
+  my $g = $self->{graph};
+
+  # if we only have two node, then we parsed something like '' and let it be:
+  if ($g->nodes() > 2)
+    {
+    # XXX TODO: use ->edges() and Graph::Easy 0.50
+    my @edges = values %{$start->{edges}};
+    if (@edges == 1 && $edges[0]->to() == $end)
+      {
+      $g->del_node($start);
+      $g->del_node($end);
+      }
+    }
+
+  $self;
   }
 
 #############################################################################
@@ -841,6 +876,18 @@ an object returned by one of the C<add_*> methods.
 The returned block will only be the last block if you call C<finish()>
 beforehand.
 
+=head2 start_node()
+
+	my $start = $grapher->start_node();
+
+Returns the START node. See also L<first_block()>.
+
+=head2 end_node()
+
+	my $end = $grapher->end_node();
+
+Returns the END node. See also L<last_block()>.
+
 =head2 finish()
 
 	my $last = $grapher->finish( $block );
@@ -1191,14 +1238,14 @@ L<Graph::Easy>, L<Devel::Graph>.
 =head1 COPYRIGHT AND LICENSE
 
 This library is free software; you can redistribute it and/or modify
-it under the same terms of the GPL version 2.
+it under the same terms of the GPL version 2 or later.
 See the LICENSE file for information.
 
 X<gpl>
 
 =head1 AUTHOR
 
-Copyright (C) 2004-2006 by Tels L<http://bloodgate.com>
+Copyright (C) 2004-2007 by Tels L<http://bloodgate.com>
 
 X<tels>
 X<bloodgate.com>

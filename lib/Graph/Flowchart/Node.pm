@@ -83,6 +83,7 @@ sub new
   $self->{_label} = $labelname if defined $labelname;
   $self->{id} = Graph::Easy::Base::_new_id();
 
+  $label = '' unless defined $label;
   # convert newlines into '\n'
   $label =~ s/\n/\\n/g;
 

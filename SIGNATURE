@@ -1,5 +1,5 @@
 This file contains message digests of all files listed in MANIFEST,
-signed via the Module::Signature module, version 0.42.
+signed via the Module::Signature module, version 0.54.
 
 To verify the content in this distribution, first make sure you have
 Module::Signature installed, then type:
@@ -12,28 +12,40 @@ the distribution may already have been compromised, and you should
 not run its Makefile.PL or Build.PL.
 
 -----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
 
-SHA1 d55924c313aca6e905389a552c1559a2b6bddc49 CHANGES
+SHA1 6256cbe0cc035a32805fee4a06d4d71176d833d0 CHANGES
 SHA1 02154445bc9831e791c35050f1a018ed99030016 LICENSE
-SHA1 559a6c54f4f45027f57432e5a15bba77fbface14 MANIFEST
-SHA1 fa7f0e7e47b126afde079eb137364d166aefd8be META.yml
-SHA1 587f46d20ab74392a2ed400ddfdb3bd2085a6838 Makefile.PL
+SHA1 15c200790e3e23573943c42e9a44dceff65cbc86 MANIFEST
+SHA1 52043dcda904b8cc8d4ad0aa1ecae0a025c64904 META.yml
+SHA1 acc257d232b6ecd07034ac190190402d3108b3bb Makefile.PL
 SHA1 4beffa6eaef01aad60a1a69b7e9397ca5daac638 README
-SHA1 25096171a915102d4c44c1a752695f745ae1e726 examples/test.pl
-SHA1 e1ed7c7bc8ce19af355e4e764af4a79dad76b16d lib/Graph/Flowchart.pm
-SHA1 ac0ce0fc1d612b9e1df6d796313cba4a5d83fa71 lib/Graph/Flowchart/Node.pm
+SHA1 4c0410cccf848edf94f16d431eefb94d4c7d9c0b examples/test.pl
+SHA1 603bb9de29fb8cba7f13409c546750972eff645d inc/Module/AutoInstall.pm
+SHA1 9b2f9d83bcf77860f53a0c07c90a4a59ad9f5df1 inc/Module/Install.pm
+SHA1 ad955f51ad2c40d4ba35395c27f5ed899a80bf7a inc/Module/Install/AutoInstall.pm
+SHA1 abe32855d75ab13747cf65765af9947b7a8c3057 inc/Module/Install/Base.pm
+SHA1 95b81d1e91bd634467bf633571eff4420e9c04eb inc/Module/Install/Can.pm
+SHA1 1fe98c63cf9d7271c8cb4183ba230f152df69e26 inc/Module/Install/Fetch.pm
+SHA1 0606a8b02a420600bc3e2b65ab82f70266784926 inc/Module/Install/Include.pm
+SHA1 2249171a2b72cd73ff2c0a06597d29f86e5df456 inc/Module/Install/Makefile.pm
+SHA1 381bb98ea3877bba49ae85e7a7ea130645fd3dbf inc/Module/Install/Metadata.pm
+SHA1 0c2118868ef82ac517eb6d9c3bd93e6eb9bbf83e inc/Module/Install/Win32.pm
+SHA1 e827d6d43771032fa3df35c0ad5e5698d0e54cda inc/Module/Install/WriteAll.pm
+SHA1 fbceef83043284e785fdf26e240ae4771613ff80 lib/Graph/Flowchart.pm
+SHA1 3e05446e93d5e69201fddca56374c0fe2e068213 lib/Graph/Flowchart/Node.pm
 SHA1 e24284ea41bdde9997afb4d61710d0d4aa4f2d3e t/graphpm.t
 SHA1 1b9770cd52c39ce7b2d3545b3781493ee7054930 t/nodepm.t
 SHA1 feffb9911ac4562ae10a33c944bb2dc076554743 t/pod.t
 SHA1 65469cad96d416de68da8b514d456f0c567632a9 t/pod_cov.t
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.2.4 (GNU/Linux)
+Version: GnuPG v1.4.2 (GNU/Linux)
 
-iQEVAwUBQ9zb9XcLPEOTuEwVAQFrrAf+JEmrbZOiBeBHnhO+lLxjdPjzuzSU9wfP
-wgThKuVt0gqw2PeT0LhZYRdzpYux1G0+qrvd0IGF3mcToawzv1ATtjh435Z+FXmO
-SZ3GT3xjeWupsnGg31jmEm29ahQs9duT8lh/BNGbDkxqZPQHlCFgAd1/3PYzrCN8
-N0p0VXbZhklUbpZK6CVNEGmibgx2udZaemTNYcc/29d3VtK3b3tbkTHSJWJWBOxS
-RckCjBxW9MfGXx+U1P4VYqA4XBRulWrXw4TcMsRxdGUX/994ib9+qq+CFnpzEnlj
-v5IB5ynKR1JGGPymsE1m4pek8IuC5lb4vTqwXxNtXPk1DS5VDYTm/g==
-=cQud
+iQEVAwUBRcN5IncLPEOTuEwVAQJs9Af7BKh8nxXJN5MY7fIAZuE/WmppyvkcnMDx
+PSE6yoGDecVGomF30UGpY4hJLmfdID2vK39+FaHgXA3+UjSO9T26JH0YLlTEbbkR
+A/ut2QfkWLv+eSturQTsYKdew4t7/Sdv19muigLg97CUjOzsbmK5o/cmJMlASZrM
+Am48eMi5aCsxzsW5wyWkOqkVGzoTZxVB3guPyff4+hVJJ2ilQoVLXCzzPAPkM9lB
+40qMsMsYaGDsOLsgAWv6/L9nBp9/fy13XV4JMulvuCJmetueiZrYBEykJRZR0XIk
+GjDYTGoVinCRNIuscdmTHRIeYTcBWTcaAkBoa42t4JudB93erGoTyQ==
+=SrYe
 -----END PGP SIGNATURE-----
