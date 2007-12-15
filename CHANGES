@@ -1,5 +1,10 @@
 Revision history for Perl extension Graph::Flowchart:
 
+0.11 2007-12-15 Tels 36 tests
+  * require Graph::Easy v0.60
+  * require Test::More 0.62 for build
+  * fix Makefile.PL for outdated Perls (older than v5.6.0)
+
 0.10 2007-02-02 Tels 36 tests
   * require Perl v5.8.1
   * require Graph::Easy v0.52
